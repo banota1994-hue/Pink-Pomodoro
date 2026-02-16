@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: transparent;
+  font-family: 'Cairo', sans-serif;
+}
+
+.card {
+  width: 750px;
+  min-height: 480px;
+  border-radius: 28px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* صورتك */
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("https://i.imgur.com/WG3oMtB.jpg") center/cover no-repeat;
+  z-index: 0;
+}
+
+/* طبقة وردية خفيفة */
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(224, 138, 179, 0.35);
+  z-index: 0;
+}
+
+.content {
+  position: relative;
+  z-index: 1;
+  padding: 40px;
+  text-align: center;
+  width: 100%;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.timer {
+  font-size: 60px;
+  font-weight: 600;
+  margin: 20px 0;
+}
+
+.controls {
+  margin: 15px 0;
+}
+
+.controls button, select {
+  border: none;
+  padding: 10px 18px;
+  border-radius: 20px;
+  margin: 5px;
+  font-family: 'Cairo', sans-serif;
+  cursor: pointer;
+}
+
+.start { background: white; color: #e08ab3; }
+.pause { background: #ffdce9; color: #a94c74; }
+.stop { background: rgba(255,255,255,0.3); color: white; }
+
+.priorities {
+  margin-top: 30px;
+}
+
+.priorities input {
+  width: 70%;
+  padding: 10px;
+  border-radius: 14px;
+  border: none;
+  margin: 8px 0;
+  font-family: 'Cairo', sans-serif;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+  <div class="content">
+    <div class="title" id="modeText">وضع التركيز 🍅</div>
+    <div class="timer" id="timer">25:00</div>
+
+    <div>
+      استراحة:
+      <select id="breakSelect">
+        <option value="5">5 دقائق</option>
+        <option value="10">10 دقائق</option>
+      </select>
+    </div>
+
+    <div class="controls">
+      <button class="start" onclick="startTimer()">Start</button>
+      <button class="pause" onclick="pauseTimer()">Pause</button>
+      <button class="stop" onclick="stopTimer()">Stop</button>
+    </div>
+
+    <div class="priorities">
+      <input placeholder="الأولوية الأولى">
+      <input placeholder="الأولوية الثانية">
+      <input placeholder="الأولوية الثالثة">
+    </div>
+  </div>
+</div>
+
+<script>
+let focusTime = 25 * 60;
+let breakTime = 5 * 60;
+let currentTime = focusTime;
+let timerInterval = null;
+let isBreak = false;
+
+function updateDisplay() {
+  let minutes = Math.floor(currentTime / 60);
+  let seconds = currentTime % 60;
+  minutes = minutes < 10 ? "0" + minutes : minutes;
+  seconds = seconds < 10 ? "0" + seconds : seconds;
+  document.getElementById("timer").textContent = minutes + ":" + seconds;
+}
+
+function startTimer() {
+  if (timerInterval) return;
+
+  timerInterval = setInterval(() => {
+    if (currentTime > 0) {
+      currentTime--;
+      updateDisplay();
+    } else {
+      isBreak = !isBreak;
+      breakTime = document.getElementById("breakSelect").value * 60;
+      currentTime = isBreak ? breakTime : focusTime;
+      document.getElementById("modeText").textContent =
+        isBreak ? "وضع الاستراحة 🌿" : "وضع التركيز 🍅";
+      updateDisplay();
+    }
+  }, 1000);
+}
+
+function pauseTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  timerInterval = null;
+  isBreak = false;
+  currentTime = focusTime;
+  document.getElementById("modeText").textContent = "وضع التركيز 🍅";
+  updateDisplay();
+}
+
+updateDisplay();
+</script>
+
+</body>
+</html>
