@@ -100,6 +100,12 @@ color:white;
 text-align:center;
 box-shadow:0 20px 50px rgba(0,0,0,0.3);
 }
+input[type="number"]{
+border-radius:6px;
+border:none;
+padding:4px;
+width:60px;
+}
 </style>
 </head>
 <body>
@@ -223,32 +229,25 @@ document.getElementById("timer").textContent=m+":"+s;
 
 function startTimer(){
 if(timerInterval) return;
-
 ensureMonthExists();
 lockedPriority = document.getElementById("prioritySelect").value;
 document.getElementById("startBtn").classList.add("glow");
 
 timerInterval=setInterval(()=>{
-
 if(currentTime>0){
 currentTime--;
 if(!isBreak){ addSecond(); }
 updateDisplay();
 }else{
-
 if(!isBreak){ addSession(); }
-
 isBreak=!isBreak;
 breakTime=document.getElementById("breakSelect").value*60;
 currentTime=isBreak?breakTime:focusTime;
-
 document.getElementById("modeText").textContent=
 isBreak?"وضع الاستراحة 🌿":"وضع التركيز 🍅";
-
 document.getElementById("card").classList.toggle("break");
 updateDisplay();
 }
-
 },1000);
 }
 
@@ -274,30 +273,28 @@ document.getElementById("startBtn").classList.remove("glow");
 updateDisplay();
 }
 
-/* ===== FIX: يرجع العداد مباشرة عند تغيير الأولوية ===== */
-document.getElementById("prioritySelect").addEventListener("change", function(){
-resetTimer();
-});
-
-/* ===== Buttons ===== */
+document.getElementById("prioritySelect").addEventListener("change", resetTimer);
 document.getElementById("startBtn").addEventListener("click", startTimer);
 document.getElementById("pauseBtn").addEventListener("click", pauseTimer);
 document.getElementById("stopBtn").addEventListener("click", stopTimer);
 
-/* ===== Stats ===== */
-
-/* ===== Stats ===== */
+/* ===== Stats + Goals + Archive ===== */
 
 function formatTime(seconds){
 let h = Math.floor(seconds / 3600);
 let m = Math.floor((seconds % 3600) / 60);
 let s = seconds % 60;
+return (h<10?"0"+h:h)+":"+(m<10?"0"+m:m)+":"+(s<10?"0"+s:s);
+}
 
-h = h < 10 ? "0"+h : h;
-m = m < 10 ? "0"+m : m;
-s = s < 10 ? "0"+s : s;
-
-return h + ":" + m + ":" + s;
+function saveGoal(year, month, priority, hours){
+let data = getData();
+if(!data[year][month].goals){
+data[year][month].goals = {};
+}
+data[year][month].goals[priority] = parseFloat(hours||0)*3600;
+saveData(data);
+renderMonth(year,month);
 }
 
 function openStats(){
@@ -317,94 +314,91 @@ renderMonth(year, month);
 function renderMonth(year, month){
 const data = getData();
 const monthData = data?.[year]?.[month];
-
-let content = `
-<div style="margin-bottom:15px;">
-<button onclick="showArchive()" 
-style="background:none;border:1px solid white;color:white;padding:5px 10px;border-radius:8px;cursor:pointer;">
-الأرشيف
-</button>
-</div>
-`;
-
 if(!monthData){
-content += "لا توجد بيانات لهذا الشهر";
-document.getElementById("statsContent").innerHTML = content;
+document.getElementById("statsContent").innerHTML="لا توجد بيانات لهذا الشهر";
 return;
 }
 
-let monthHTML = "";
+let content = `<b>📊 ${year}-${month}</b><br><br>`;
+let totalSecondsMonth=0,totalSessionsMonth=0;
 
 for(let p in monthData){
+if(p==="goals") continue;
+
 const totalSeconds = monthData[p].time || 0;
 const sessions = monthData[p].sessions || 0;
+totalSecondsMonth+=totalSeconds;
+totalSessionsMonth+=sessions;
 
-monthHTML += `
-<div style="margin-bottom:10px;">
+let goalSeconds = monthData.goals?.[p] || 0;
+let percent = goalSeconds ? Math.min((totalSeconds/goalSeconds)*100,100) : 0;
+
+content+=`
+<div style="margin-bottom:15px;text-align:right;">
 <b>${p}</b><br>
-${formatTime(totalSeconds)} — ${sessions} جلسات
+${formatTime(totalSeconds)} ${goalSeconds?" / "+formatTime(goalSeconds):""}
+<div style="background:rgba(255,255,255,0.2);height:8px;border-radius:6px;margin:6px 0;">
+<div style="width:${percent}%;height:100%;background:white;border-radius:6px;"></div>
+</div>
+الهدف (ساعات):
+<input type="number" min="0"
+value="${goalSeconds?goalSeconds/3600:""}"
+onchange="saveGoal('${year}','${month}','${p}',this.value)">
 </div>
 `;
 }
-let totalSecondsMonth = 0;
-let totalSessionsMonth = 0;
 
-for(let p in monthData){
-totalSecondsMonth += monthData[p].time || 0;
-totalSessionsMonth += monthData[p].sessions || 0;
-}
-
-monthHTML += `
-<hr style="border:1px solid rgba(255,255,255,0.3);margin:15px 0;">
+content+=`
+<hr>
 <b>📈 إجمالي الشهر</b><br>
 ${formatTime(totalSecondsMonth)}<br>
 ${totalSessionsMonth} جلسة
+<br><br>
+<button onclick="showArchive()">📚 الأرشيف</button>
 `;
 
-content += `
-<b>📊 ${year}-${month}</b><br><br>
-${monthHTML}
-`;
-
-document.getElementById("statsContent").innerHTML = content;
+document.getElementById("statsContent").innerHTML=content;
 }
 
 function showArchive(){
-const data = getData();
-const {year} = getCurrentYearMonth();
-const yearData = data?.[year];
-
-let content = `
-<div style="margin-bottom:15px;">
-<button onclick="showCurrentMonth()" 
-style="background:none;border:1px solid white;color:white;padding:5px 10px;border-radius:8px;cursor:pointer;">
-العودة للشهر الحالي
-</button>
-</div>
-`;
-
+const data=getData();
+const {year}=getCurrentYearMonth();
+const yearData=data?.[year];
 if(!yearData){
-content += "لا توجد بيانات لهذه السنة";
-document.getElementById("statsContent").innerHTML = content;
+document.getElementById("statsContent").innerHTML="لا توجد بيانات لهذه السنة";
 return;
 }
 
-content += "<b>📚 الأرشيف</b><br><br>";
+let content="<b>📚 الأرشيف</b><br><br>";
+let yearTotal=0,yearSessions=0;
 
 for(let m in yearData){
-content += `
-<div style="margin-bottom:8px;cursor:pointer;"
-onclick="renderMonth('${year}','${m}')">
-شهر ${m}
-</div>
+let monthTotal=0;
+for(let p in yearData[m]){
+if(p==="goals") continue;
+monthTotal+=yearData[m][p].time||0;
+yearTotal+=yearData[m][p].time||0;
+yearSessions+=yearData[m][p].sessions||0;
+}
+content+=`<div style="margin:6px 0;">${m} — ${formatTime(monthTotal)}</div>`;
+}
+
+content+=`
+<hr>
+<b>🏆 إنجازات السنة حتى الآن</b><br>
+${formatTime(yearTotal)}<br>
+${yearSessions} جلسة
+<br><br>
+<button onclick="showCurrentMonth()">العودة</button>
 `;
+
+document.getElementById("statsContent").innerHTML=content;
 }
 
-document.getElementById("statsContent").innerHTML = content;
-}
-
+updateDisplay();
+ensureMonthExists();
 </script>
-
 </body>
 </html>
+
 
