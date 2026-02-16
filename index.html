@@ -187,212 +187,22 @@ localStorage.setItem("focusData", JSON.stringify(data));
 function ensureMonthExists(){
 let data = getData();
 const {year, month} = getCurrentYearMonth();
+
 if(!data[year]) data[year] = {};
 if(!data[year][month]) data[year][month] = {};
+
+const priorities = ["قراءة","كتابة","رسم","أخرى"];
+
+priorities.forEach(p=>{
+if(!data[year][month][p]){
+data[year][month][p] = {time:0,sessions:0,days:{}};
+}
+});
+
+if(!data[year][month].goals){
+data[year][month].goals = {};
+}
+
 saveData(data);
 }
-
-/* ===== Tracking ===== */
-
-function addSecond(){
-let data = getData();
-const now = new Date();
-const {year, month} = getCurrentYearMonth();
-const dayKey = now.toISOString().slice(0,10);
-
-if(!data[year][month][lockedPriority]){
-data[year][month][lockedPriority] = {time:0,sessions:0,days:{}};
-}
-if(!data[year][month][lockedPriority].days[dayKey]){
-data[year][month][lockedPriority].days[dayKey] = {time:0,sessions:0};
-}
-
-data[year][month][lockedPriority].time += 1;
-data[year][month][lockedPriority].days[dayKey].time += 1;
-saveData(data);
-}
-
-function addSession(){
-let data = getData();
-const now = new Date();
-const {year, month} = getCurrentYearMonth();
-const dayKey = now.toISOString().slice(0,10);
-
-data[year][month][lockedPriority].sessions += 1;
-data[year][month][lockedPriority].days[dayKey].sessions += 1;
-saveData(data);
-}
-
-/* ===== Timer ===== */
-
-function updateDisplay(){
-let m=Math.floor(currentTime/60);
-let s=currentTime%60;
-m=m<10?"0"+m:m;
-s=s<10?"0"+s:s;
-document.getElementById("timer").textContent=m+":"+s;
-}
-
-function startTimer(){
-if(timerInterval) return;
-
-ensureMonthExists();
-lockedPriority = document.getElementById("prioritySelect").value;
-document.getElementById("startBtn").classList.add("glow");
-
-timerInterval=setInterval(()=>{
-
-if(currentTime>0){
-currentTime--;
-if(!isBreak){ addSecond(); }
-updateDisplay();
-}else{
-
-if(!isBreak){
-focusSound.currentTime = 0;
-focusSound.play();
-}else{
-breakSound.currentTime = 0;
-breakSound.play();
-}
-
-if(navigator.vibrate){
-navigator.vibrate([200,100,200]);
-}
-
-if(!isBreak){ addSession(); }
-
-isBreak=!isBreak;
-breakTime=document.getElementById("breakSelect").value*60;
-currentTime=isBreak?breakTime:focusTime;
-
-document.getElementById("modeText").textContent=
-isBreak?"وضع الاستراحة 🌿":"وضع التركيز 🍅";
-
-document.getElementById("card").classList.toggle("break");
-updateDisplay();
-}
-
-},1000);
-}
-
-function pauseTimer(){
-clearInterval(timerInterval);
-timerInterval=null;
-document.getElementById("startBtn").classList.remove("glow");
-}
-
-function stopTimer(){
-resetTimer();
-}
-
-function resetTimer(){
-clearInterval(timerInterval);
-timerInterval=null;
-currentTime = focusTime;
-isBreak = false;
-lockedPriority = null;
-document.getElementById("modeText").textContent="وضع التركيز 🍅";
-document.getElementById("card").classList.remove("break");
-document.getElementById("startBtn").classList.remove("glow");
-updateDisplay();
-}
-
-document.getElementById("prioritySelect").addEventListener("change", resetTimer);
-document.getElementById("startBtn").addEventListener("click", startTimer);
-document.getElementById("pauseBtn").addEventListener("click", pauseTimer);
-document.getElementById("stopBtn").addEventListener("click", stopTimer);
-
-/* ===== Stats ===== */
-
-function formatTime(seconds){
-let h = Math.floor(seconds / 3600);
-let m = Math.floor((seconds % 3600) / 60);
-let s = seconds % 60;
-return (h<10?"0"+h:h)+":"+(m<10?"0"+m:m)+":"+(s<10?"0"+s:s);
-}
-
-function openStats(){
-showCurrentMonth();
-document.getElementById("statsOverlay").style.display="flex";
-}
-
-function closeStats(){
-document.getElementById("statsOverlay").style.display="none";
-}
-
-function showCurrentMonth(){
-const {year, month} = getCurrentYearMonth();
-renderMonth(year, month);
-}
-
-function renderMonth(year, month){
-const data = getData();
-const monthData = data?.[year]?.[month];
-
-if(!monthData){
-document.getElementById("statsContent").innerHTML="لا توجد بيانات لهذا الشهر";
-return;
-}
-
-let content = `<b>📊 ${year}-${month}</b><br><br>`;
-let totalSecondsMonth = 0;
-let totalSessionsMonth = 0;
-
-for(let p in monthData){
-if(p==="goals") continue;
-
-const totalSeconds = monthData[p].time || 0;
-const sessions = monthData[p].sessions || 0;
-
-totalSecondsMonth += totalSeconds;
-totalSessionsMonth += sessions;
-
-content += `
-<div style="margin-bottom:12px;">
-<b>${p}</b><br>
-${formatTime(totalSeconds)}
-</div>
-`;
-}
-
-content += `
-<hr>
-<b>📈 إجمالي الشهر</b><br>
-${formatTime(totalSecondsMonth)}<br>
-${totalSessionsMonth} جلسة
-`;
-
-let prevMonth = parseInt(month)-1;
-let prevYear = parseInt(year);
-if(prevMonth===0){ prevMonth=12; prevYear--; }
-prevMonth=prevMonth.toString().padStart(2,"0");
-prevYear=prevYear.toString();
-
-const prevData = data?.[prevYear]?.[prevMonth];
-
-if(prevData){
-let prevTotal=0;
-for(let p in prevData){
-prevTotal+=prevData[p].time||0;
-}
-let diff = totalSecondsMonth-prevTotal;
-
-content+=`
-<br><br>
-<b>📊 مقارنة بالشهر الماضي</b><br>
-${diff>=0?"📈 +":"📉 -"} ${formatTime(Math.abs(diff))}
-`;
-}
-
-content+=`<br><br><button onclick="closeStats()">إغلاق</button>`;
-
-document.getElementById("statsContent").innerHTML=content;
-}
-
-updateDisplay();
-ensureMonthExists();
-</script>
-</body>
-</html>
-
+...
