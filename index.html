@@ -100,22 +100,22 @@ color:white;
 text-align:center;
 box-shadow:0 20px 50px rgba(0,0,0,0.3);
 }
+.progressBar{
+background:rgba(255,255,255,0.2);
+height:8px;
+border-radius:6px;
+margin:6px 0;
+overflow:hidden;
+}
+.progressFill{
+height:100%;
+border-radius:6px;
+}
 input[type="number"]{
 border-radius:6px;
 border:none;
 padding:4px;
 width:60px;
-margin-top:5px;
-}
-.progressBar{
-height:8px;
-border-radius:6px;
-margin:6px 0;
-background:rgba(255,255,255,0.2);
-}
-.progressFill{
-height:100%;
-border-radius:6px;
 }
 </style>
 </head>
@@ -164,6 +164,7 @@ border-radius:6px;
 </div>
 
 <script>
+
 let focusTime = 30*60;
 let breakTime = 5*60;
 let currentTime = focusTime;
@@ -190,34 +191,29 @@ function saveData(data){
 localStorage.setItem("focusData", JSON.stringify(data));
 }
 
-function ensureStructure(){
+function ensureMonthExists(){
 let data = getData();
 const {year, month} = getCurrentYearMonth();
-if(!data[year]) data[year]={};
-if(!data[year][month]) data[year][month]={};
-
-["قراءة","كتابة","رسم","أخرى"].forEach(p=>{
-if(!data[year][month][p]){
-data[year][month][p]={time:0,sessions:0};
-}
-if(!data[year][month].goals) data[year][month].goals={};
-if(!data[year][month].goals[p]) data[year][month].goals[p]=0;
-});
-
+if(!data[year]) data[year] = {};
+if(!data[year][month]) data[year][month] = {};
+if(!data[year][month].goals) data[year][month].goals = {};
 saveData(data);
 }
 
 function addSecond(){
 let data = getData();
 const {year, month} = getCurrentYearMonth();
-data[year][month][lockedPriority].time +=1;
+if(!data[year][month][lockedPriority]){
+data[year][month][lockedPriority] = {time:0,sessions:0};
+}
+data[year][month][lockedPriority].time += 1;
 saveData(data);
 }
 
 function addSession(){
 let data = getData();
 const {year, month} = getCurrentYearMonth();
-data[year][month][lockedPriority].sessions +=1;
+data[year][month][lockedPriority].sessions += 1;
 saveData(data);
 }
 
@@ -230,21 +226,23 @@ document.getElementById("timer").textContent=
 
 function startTimer(){
 if(timerInterval) return;
-ensureStructure();
+ensureMonthExists();
 lockedPriority=document.getElementById("prioritySelect").value;
 document.getElementById("startBtn").classList.add("glow");
 
 timerInterval=setInterval(()=>{
 if(currentTime>0){
 currentTime--;
-if(!isBreak) addSecond();
+if(!isBreak){ addSecond(); }
 updateDisplay();
 }else{
-if(!isBreak){focusSound.play(); addSession();}
+if(!isBreak){ focusSound.play(); addSession(); }
 else breakSound.play();
+
 isBreak=!isBreak;
 breakTime=document.getElementById("breakSelect").value*60;
 currentTime=isBreak?breakTime:focusTime;
+
 document.getElementById("modeText").textContent=
 isBreak?"وضع الاستراحة 🌿":"وضع التركيز 🍅";
 document.getElementById("card").classList.toggle("break");
@@ -253,9 +251,21 @@ updateDisplay();
 },1000);
 }
 
-function pauseTimer(){clearInterval(timerInterval);timerInterval=null;}
-function stopTimer(){clearInterval(timerInterval);timerInterval=null;currentTime=focusTime;isBreak=false;updateDisplay();}
+function pauseTimer(){
+clearInterval(timerInterval);
+timerInterval=null;
+document.getElementById("startBtn").classList.remove("glow");
+}
 
+function stopTimer(){
+clearInterval(timerInterval);
+timerInterval=null;
+currentTime=focusTime;
+isBreak=false;
+updateDisplay();
+}
+
+document.getElementById("prioritySelect").addEventListener("change",stopTimer);
 document.getElementById("startBtn").addEventListener("click",startTimer);
 document.getElementById("pauseBtn").addEventListener("click",pauseTimer);
 document.getElementById("stopBtn").addEventListener("click",stopTimer);
@@ -263,11 +273,11 @@ document.getElementById("stopBtn").addEventListener("click",stopTimer);
 function formatTime(seconds){
 let h=Math.floor(seconds/3600);
 let m=Math.floor((seconds%3600)/60);
-return h+" ساعة "+m+" دقيقة";
+let s=seconds%60;
+return (h<10?"0"+h:h)+":"+(m<10?"0"+m:m)+":"+(s<10?"0"+s:s);
 }
 
 function openStats(){
-ensureStructure();
 renderMonth();
 document.getElementById("statsOverlay").style.display="flex";
 }
@@ -276,18 +286,28 @@ function closeStats(){
 document.getElementById("statsOverlay").style.display="none";
 }
 
+function updateGoal(priority,value){
+let data=getData();
+const {year,month}=getCurrentYearMonth();
+data[year][month].goals[priority]=parseFloat(value||0)*3600;
+saveData(data);
+renderMonth();
+}
+
 function renderMonth(){
 const data=getData();
 const {year,month}=getCurrentYearMonth();
-const monthData=data[year][month];
+const monthData=data?.[year]?.[month];
+if(!monthData){document.getElementById("statsContent").innerHTML="لا توجد بيانات";return;}
+
 let total=0;
 let html=`<b>📊 ${year}-${month}</b><br><br>`;
 
-for(let p in monthData){
-if(p==="goals") continue;
-let time=monthData[p].time;
-let goal=monthData.goals[p]||0;
+["قراءة","كتابة","رسم","أخرى"].forEach(p=>{
+let time=monthData[p]?.time||0;
+let goal=monthData.goals?.[p]||0;
 let percent=goal?Math.floor((time/goal)*100):0;
+
 let color="white";
 if(percent>=100 && percent<120) color="limegreen";
 if(percent>=120) color="gold";
@@ -296,7 +316,7 @@ html+=`
 <b>${p}</b><br>
 ${formatTime(time)}<br>
 الهدف (ساعات):
-<input type="number" value="${goal/3600}" 
+<input type="number" value="${goal/3600||""}" 
 onchange="updateGoal('${p}',this.value)">
 <div class="progressBar">
 <div class="progressFill" 
@@ -304,43 +324,58 @@ style="width:${Math.min(percent,100)}%;background:${color};"></div>
 </div>
 ${percent}%<br><br>
 `;
-total+=time;
-}
 
-html+=`<hr>📈 إجمالي الشهر<br>${formatTime(total)}<br>`;
+total+=time;
+});
+
+html+=`<hr>📈 إجمالي الشهر<br>${formatTime(total)}<br><br>`;
 
 let prevMonth=parseInt(month)-1;
 let prevYear=parseInt(year);
 if(prevMonth===0){prevMonth=12;prevYear--;}
 prevMonth=prevMonth.toString().padStart(2,"0");
-prevYear=prevYear.toString();
 
-const prevData=data?.[prevYear]?.[prevMonth];
+let prevData=data?.[prevYear]?.[prevMonth];
 if(prevData){
 let prevTotal=0;
 for(let p in prevData){
-if(p==="goals") continue;
-prevTotal+=prevData[p].time||0;
+if(p==="goals")continue;
+prevTotal+=prevData[p]?.time||0;
 }
 let diff=total-prevTotal;
-html+=`<br>📊 مقارنة بالشهر الماضي<br>
-${diff>=0?"📈 +":"📉 -"} ${formatTime(Math.abs(diff))}`;
+html+=`📊 مقارنة بالشهر الماضي<br>
+${diff>=0?"📈 +":"📉 -"} ${formatTime(Math.abs(diff))}<br><br>`;
 }
 
-html+=`<br><br><button onclick="closeStats()">إغلاق</button>`;
+html+=`<button onclick="showArchive()">📚 الأرشيف</button>`;
 document.getElementById("statsContent").innerHTML=html;
 }
 
-function updateGoal(priority,value){
-let data=getData();
-const {year,month}=getCurrentYearMonth();
-data[year][month].goals[priority]=parseInt(value||0)*3600;
-saveData(data);
-renderMonth();
+function showArchive(){
+const data=getData();
+const {year}=getCurrentYearMonth();
+let html=`<b>📚 أرشيف ${year}</b><br><br>`;
+let yearTotal=0;
+
+for(let m in data[year]){
+let monthTotal=0;
+for(let p in data[year][m]){
+if(p==="goals")continue;
+monthTotal+=data[year][m][p]?.time||0;
+yearTotal+=data[year][m][p]?.time||0;
+}
+html+=`شهر ${m} — ${formatTime(monthTotal)}<br>`;
+}
+
+html+=`<hr>🏆 إنجازات السنة حتى الآن<br>${formatTime(yearTotal)}<br><br>
+<button onclick="renderMonth()">العودة</button>`;
+
+document.getElementById("statsContent").innerHTML=html;
 }
 
 updateDisplay();
-ensureStructure();
+ensureMonthExists();
+
 </script>
 </body>
 </html>
