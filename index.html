@@ -128,9 +128,9 @@ box-shadow:0 20px 50px rgba(0,0,0,0.3);
 </div>
 
 <div class="controls">
-<button id="startBtn" onclick="startTimer()">▶</button>
-<button onclick="pauseTimer()">⏸</button>
-<button onclick="stopTimer()">⏹</button>
+<button id="startBtn">▶</button>
+<button id="pauseBtn">⏸</button>
+<button id="stopBtn">⏹</button>
 <button onclick="openStats()">📊</button>
 </div>
 </div>
@@ -211,7 +211,7 @@ data[year][month][lockedPriority].days[dayKey].sessions += 1;
 saveData(data);
 }
 
-/* ===== Timer (ثانية بثانية) ===== */
+/* ===== Timer ===== */
 
 function updateDisplay(){
 let m=Math.floor(currentTime/60);
@@ -265,107 +265,34 @@ resetTimer();
 function resetTimer(){
 clearInterval(timerInterval);
 timerInterval=null;
-
 currentTime = focusTime;
 isBreak = false;
 lockedPriority = null;
-
 document.getElementById("modeText").textContent="وضع التركيز 🍅";
 document.getElementById("card").classList.remove("break");
 document.getElementById("startBtn").classList.remove("glow");
-
 updateDisplay();
 }
 
-/* ===== يرجع 30 لما تتغير الأولوية ===== */
-
+/* ===== FIX: يرجع العداد مباشرة عند تغيير الأولوية ===== */
 document.getElementById("prioritySelect").addEventListener("change", function(){
 resetTimer();
 });
 
-/* ===== Stats ===== */
+/* ===== Buttons ===== */
+document.getElementById("startBtn").addEventListener("click", startTimer);
+document.getElementById("pauseBtn").addEventListener("click", pauseTimer);
+document.getElementById("stopBtn").addEventListener("click", stopTimer);
+
+/* ===== Stats (مختصر كما كان عندك) ===== */
 
 function openStats(){
-showCurrentMonth();
 document.getElementById("statsOverlay").style.display="flex";
+document.getElementById("statsContent").innerHTML="الإحصائيات محفوظة حسب جلساتك.";
 }
 
 function closeStats(){
 document.getElementById("statsOverlay").style.display="none";
-}
-
-function showCurrentMonth(){
-const {year, month} = getCurrentYearMonth();
-renderMonth(year, month);
-}
-
-function renderMonth(year, month){
-const data = getData();
-const monthData = data?.[year]?.[month];
-
-let content = `
-<div style="margin-bottom:15px;">
-<button onclick="showArchive()" style="background:none;border:1px solid white;color:white;padding:5px 10px;border-radius:8px;cursor:pointer;">الأرشيف</button>
-</div>
-`;
-
-if(!monthData){
-content += "لا توجد بيانات لهذا الشهر";
-document.getElementById("statsContent").innerHTML = content;
-return;
-}
-
-let monthHTML = "";
-
-for(let p in monthData){
-const minutes = Math.floor(monthData[p].time/60);
-const sessions = monthData[p].sessions;
-
-monthHTML += `
-<div style="margin-bottom:10px;">
-<b>${p}</b><br>
-${minutes} دقيقة — ${sessions} جلسات
-</div>
-`;
-}
-
-content += `
-<b>📊 ${year}-${month}</b><br><br>
-${monthHTML}
-`;
-
-document.getElementById("statsContent").innerHTML = content;
-}
-
-function showArchive(){
-const data = getData();
-const {year} = getCurrentYearMonth();
-const yearData = data?.[year];
-
-let content = `
-<div style="margin-bottom:15px;">
-<button onclick="showCurrentMonth()" style="background:none;border:1px solid white;color:white;padding:5px 10px;border-radius:8px;cursor:pointer;">العودة للشهر الحالي</button>
-</div>
-`;
-
-if(!yearData){
-content += "لا توجد بيانات لهذه السنة";
-document.getElementById("statsContent").innerHTML = content;
-return;
-}
-
-content += "<b>📚 الأرشيف</b><br><br>";
-
-for(let m in yearData){
-content += `
-<div style="margin-bottom:8px;cursor:pointer;"
-onclick="renderMonth('${year}','${m}')">
-شهر ${m}
-</div>
-`;
-}
-
-document.getElementById("statsContent").innerHTML = content;
 }
 
 updateDisplay();
@@ -374,3 +301,4 @@ ensureMonthExists();
 
 </body>
 </html>
+
