@@ -354,27 +354,65 @@ document.getElementById("statsContent").innerHTML=html;
 function showArchive(){
 const data=getData();
 const {year}=getCurrentYearMonth();
+if(!data[year]){
+document.getElementById("statsContent").innerHTML="لا توجد بيانات لهذه السنة";
+return;
+}
+
 let html=`<b>📚 أرشيف ${year}</b><br><br>`;
+
+let yearlyByPriority={
+"قراءة":0,
+"كتابة":0,
+"رسم":0,
+"أخرى":0
+};
+
 let yearTotal=0;
 
 for(let m in data[year]){
+
+html+=`<b>شهر ${m}</b><br>`;
+
 let monthTotal=0;
-for(let p in data[year][m]){
-if(p==="goals")continue;
-monthTotal+=data[year][m][p]?.time||0;
-yearTotal+=data[year][m][p]?.time||0;
-}
-html+=`شهر ${m} — ${formatTime(monthTotal)}<br>`;
+
+["قراءة","كتابة","رسم","أخرى"].forEach(p=>{
+let time=data[year][m][p]?.time||0;
+monthTotal+=time;
+yearlyByPriority[p]+=time;
+html+=`${p} — ${formatTime(time)}<br>`;
+});
+
+html+=`<b>إجمالي الشهر — ${formatTime(monthTotal)}</b><br><br>`;
+yearTotal+=monthTotal;
 }
 
-html+=`<hr>🏆 إنجازات السنة حتى الآن<br>${formatTime(yearTotal)}<br><br>
+/* 🔥 تحديد الأعلى و ⚠️ الأقل */
+
+let priorities=Object.keys(yearlyByPriority);
+
+let maxPriority=priorities.reduce((a,b)=>
+yearlyByPriority[a]>yearlyByPriority[b]?a:b);
+
+let minPriority=priorities.reduce((a,b)=>
+yearlyByPriority[a]<yearlyByPriority[b]?a:b);
+
+html+=`<hr><b>🏆 إنجازات السنة حسب الأولوية</b><br><br>`;
+
+priorities.forEach(p=>{
+let icon="";
+if(p===maxPriority && yearlyByPriority[p]>0) icon=" 🔥";
+if(p===minPriority && yearlyByPriority[p]===0) icon=" ⚠️";
+
+html+=`${p} — ${formatTime(yearlyByPriority[p])}${icon}<br>`;
+});
+
+html+=`<br><b>إجمالي السنة — ${formatTime(yearTotal)}</b><br><br>
 <button onclick="renderMonth()">العودة</button>`;
 
 document.getElementById("statsContent").innerHTML=html;
 }
 
-updateDisplay();
-ensureMonthExists();
 
 </script>
 </body>
