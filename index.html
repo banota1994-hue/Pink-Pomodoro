@@ -284,19 +284,112 @@ document.getElementById("startBtn").addEventListener("click", startTimer);
 document.getElementById("pauseBtn").addEventListener("click", pauseTimer);
 document.getElementById("stopBtn").addEventListener("click", stopTimer);
 
-/* ===== Stats (مختصر كما كان عندك) ===== */
+/* ===== Stats ===== */
+
+function formatTime(seconds){
+let h = Math.floor(seconds / 3600);
+let m = Math.floor((seconds % 3600) / 60);
+let s = seconds % 60;
+
+h = h < 10 ? "0"+h : h;
+m = m < 10 ? "0"+m : m;
+s = s < 10 ? "0"+s : s;
+
+return h + ":" + m + ":" + s;
+}
 
 function openStats(){
+showCurrentMonth();
 document.getElementById("statsOverlay").style.display="flex";
-document.getElementById("statsContent").innerHTML="الإحصائيات محفوظة حسب جلساتك.";
 }
 
 function closeStats(){
 document.getElementById("statsOverlay").style.display="none";
 }
 
+function showCurrentMonth(){
+const {year, month} = getCurrentYearMonth();
+renderMonth(year, month);
+}
+
+function renderMonth(year, month){
+const data = getData();
+const monthData = data?.[year]?.[month];
+
+let content = `
+<div style="margin-bottom:15px;">
+<button onclick="showArchive()" 
+style="background:none;border:1px solid white;color:white;padding:5px 10px;border-radius:8px;cursor:pointer;">
+الأرشيف
+</button>
+</div>
+`;
+
+if(!monthData){
+content += "لا توجد بيانات لهذا الشهر";
+document.getElementById("statsContent").innerHTML = content;
+return;
+}
+
+let monthHTML = "";
+
+for(let p in monthData){
+const totalSeconds = monthData[p].time || 0;
+const sessions = monthData[p].sessions || 0;
+
+monthHTML += `
+<div style="margin-bottom:10px;">
+<b>${p}</b><br>
+${formatTime(totalSeconds)} — ${sessions} جلسات
+</div>
+`;
+}
+
+content += `
+<b>📊 ${year}-${month}</b><br><br>
+${monthHTML}
+`;
+
+document.getElementById("statsContent").innerHTML = content;
+}
+
+function showArchive(){
+const data = getData();
+const {year} = getCurrentYearMonth();
+const yearData = data?.[year];
+
+let content = `
+<div style="margin-bottom:15px;">
+<button onclick="showCurrentMonth()" 
+style="background:none;border:1px solid white;color:white;padding:5px 10px;border-radius:8px;cursor:pointer;">
+العودة للشهر الحالي
+</button>
+</div>
+`;
+
+if(!yearData){
+content += "لا توجد بيانات لهذه السنة";
+document.getElementById("statsContent").innerHTML = content;
+return;
+}
+
+content += "<b>📚 الأرشيف</b><br><br>";
+
+for(let m in yearData){
+content += `
+<div style="margin-bottom:8px;cursor:pointer;"
+onclick="renderMonth('${year}','${m}')">
+شهر ${m}
+</div>
+`;
+}
+
+document.getElementById("statsContent").innerHTML = content;
+}
+
 updateDisplay();
 ensureMonthExists();
+
 </script>
 
 </body>
