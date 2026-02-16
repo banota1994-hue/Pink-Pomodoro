@@ -354,6 +354,7 @@ document.getElementById("statsContent").innerHTML=html;
 function showArchive(){
 const data=getData();
 const {year}=getCurrentYearMonth();
+
 if(!data[year]){
 document.getElementById("statsContent").innerHTML="لا توجد بيانات لهذه السنة";
 return;
@@ -387,8 +388,7 @@ html+=`<b>إجمالي الشهر — ${formatTime(monthTotal)}</b><br><br>`;
 yearTotal+=monthTotal;
 }
 
-/* 🔥 تحديد الأعلى و ⚠️ الأقل */
-
+/* تحديد الأعلى والأقل */
 let priorities=Object.keys(yearlyByPriority);
 
 let maxPriority=priorities.reduce((a,b)=>
@@ -412,6 +412,7 @@ html+=`<br><b>إجمالي السنة — ${formatTime(yearTotal)}</b><br><br>
 
 document.getElementById("statsContent").innerHTML=html;
 }
+
 
 
 </script>
