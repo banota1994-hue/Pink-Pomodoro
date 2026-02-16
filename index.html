@@ -286,6 +286,8 @@ document.getElementById("stopBtn").addEventListener("click", stopTimer);
 
 /* ===== Stats ===== */
 
+/* ===== Stats ===== */
+
 function formatTime(seconds){
 let h = Math.floor(seconds / 3600);
 let m = Math.floor((seconds % 3600) / 60);
@@ -386,9 +388,6 @@ onclick="renderMonth('${year}','${m}')">
 
 document.getElementById("statsContent").innerHTML = content;
 }
-
-updateDisplay();
-ensureMonthExists();
 
 </script>
 
