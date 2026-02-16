@@ -346,6 +346,20 @@ ${formatTime(totalSeconds)} — ${sessions} جلسات
 </div>
 `;
 }
+let totalSecondsMonth = 0;
+let totalSessionsMonth = 0;
+
+for(let p in monthData){
+totalSecondsMonth += monthData[p].time || 0;
+totalSessionsMonth += monthData[p].sessions || 0;
+}
+
+monthHTML += `
+<hr style="border:1px solid rgba(255,255,255,0.3);margin:15px 0;">
+<b>📈 إجمالي الشهر</b><br>
+${formatTime(totalSecondsMonth)}<br>
+${totalSessionsMonth} جلسة
+`;
 
 content += `
 <b>📊 ${year}-${month}</b><br><br>
